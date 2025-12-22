@@ -60,7 +60,6 @@ productsGroup.MapGet("/", () =>
 });
 
 
-// GET /products/{id}
 productsGroup.MapGet("/{id:int}", (int id) =>
 {
     var product = products.FirstOrDefault(p => p.Id == id);
