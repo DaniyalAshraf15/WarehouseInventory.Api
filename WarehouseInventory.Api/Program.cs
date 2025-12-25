@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using WarehouseInventory.Api.Data;
 using FluentValidation;
 using WarehouseInventory.Api.Handlers;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,26 +77,31 @@ productsGroup.MapGet("/", async (WarehouseDbContext db) =>
             p.CategoryId))
         .ToListAsync();
 
-    return Results.Ok(products);
+    return TypedResults.Ok(products);
 });
 
 
 // GET /products/{id}
-productsGroup.MapGet("/{id:int}", async (int id, WarehouseDbContext db) =>
-{
-    var product = await db.Products.FindAsync(id);
+productsGroup.MapGet("/{id:int}",
+    async Task<Results<Ok<ProductResponseDto>, NotFound>> (
+        int id,
+        WarehouseDbContext db) =>
+    {
+        var product = await db.Products.FindAsync(id);
 
-    if (product is null)
-        return Results.NotFound();
+        if (product is null)
+            return TypedResults.NotFound();
 
-    return Results.Ok(new ProductResponseDto(
-        product.Id,
-        product.Name,
-        product.SKU,
-        product.Price,
-        product.Quantity,
-        product.CategoryId));
-});
+        return TypedResults.Ok(new ProductResponseDto(
+            product.Id,
+            product.Name,
+            product.SKU,
+            product.Price,
+            product.Quantity,
+            product.CategoryId));
+    });
+
+
 
 
 // POST /products
@@ -115,7 +121,7 @@ productsGroup.MapPost("/", async (
     db.Products.Add(product);
     await db.SaveChangesAsync();
 
-    return Results.Created($"/products/{product.Id}",
+    return TypedResults.Created($"/products/{product.Id}",
         new ProductResponseDto(
             product.Id,
             product.Name,
@@ -128,44 +134,46 @@ productsGroup.MapPost("/", async (
 
 
 // PUT /products/{id}
-productsGroup.MapPut("/{id:int}", async (
-    int id,
-    UpdateProductRequestDto request,
-    WarehouseDbContext db) =>
-{
-    var product = await db.Products.FindAsync(id);
+productsGroup.MapPut("/{id:int}",
+    async Task<Results<NoContent, NotFound>> (
+        int id,
+        UpdateProductRequestDto request,
+        WarehouseDbContext db) =>
+    {
+        var product = await db.Products.FindAsync(id);
 
-    if (product is null)
-        return Results.NotFound(new
-        {
-            message = $"Product with id {id} not found."
-        });
+        if (product is null)
+            return TypedResults.NotFound();
 
-    product.Price = request.Price;
-    product.Quantity = request.Quantity;
-    product.Name = request.Name;
+        product.Price = request.Price;
+        product.Quantity = request.Quantity;
+        product.Name = request.Name;
 
-    await db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
-    return Results.NoContent();
-})
+        return TypedResults.NoContent();
+    })
 .AddEndpointFilter<ValidationFilter<UpdateProductRequestDto>>();
 
 
 
 // DELETE /products/{id}
-productsGroup.MapDelete("/{id:int}", async (int id, WarehouseDbContext db) =>
-{
-    var product = await db.Products.FindAsync(id);
+productsGroup.MapDelete("/{id:int}",
+    async Task<Results<NoContent, NotFound>> (
+        int id,
+        WarehouseDbContext db) =>
+    {
+        var product = await db.Products.FindAsync(id);
 
-    if (product is null)
-        return Results.NotFound();
+        if (product is null)
+            return TypedResults.NotFound();
 
-    db.Products.Remove(product);
-    await db.SaveChangesAsync();
+        db.Products.Remove(product);
+        await db.SaveChangesAsync();
 
-    return Results.NoContent();
-});
+        return TypedResults.NoContent();
+    });
+
 
 
 app.Run();
