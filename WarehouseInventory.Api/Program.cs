@@ -161,18 +161,28 @@ productsGroup.MapPut("/{id:int}",
 productsGroup.MapDelete("/{id:int}",
     async Task<Results<NoContent, NotFound>> (
         int id,
-        WarehouseDbContext db) =>
+        WarehouseDbContext db,
+        ILogger<Program> logger) =>
     {
         var product = await db.Products.FindAsync(id);
 
         if (product is null)
             return TypedResults.NotFound();
 
+        if (product.Quantity > 0)
+        {
+            logger.LogWarning(
+                "Deleting product {ProductId} with quantity {Quantity}",
+                product.Id,
+                product.Quantity);
+        }
+
         db.Products.Remove(product);
         await db.SaveChangesAsync();
 
         return TypedResults.NoContent();
     });
+
 
 
 
