@@ -2,7 +2,8 @@ using WarehouseInventory.Api.Models;
 using WarehouseInventory.Api.Dtos;
 using Microsoft.EntityFrameworkCore;
 using WarehouseInventory.Api.Data;
-
+using FluentValidation;
+using WarehouseInventory.Api.Handlers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +14,12 @@ builder.Services.AddDbContext<WarehouseDbContext>(options =>
     options.UseSqlite("Data Source=warehouse.db");
 });
 
+builder.Services.AddValidatorsFromAssemblyContaining<CreateProductValidator>();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 var app = builder.Build();
+
+app.UseExceptionHandler();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<WarehouseDbContext>();
@@ -53,9 +59,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-
-
 
 var productsGroup = app.MapGroup("/products");
 
@@ -120,7 +123,8 @@ productsGroup.MapPost("/", async (
             product.Price,
             product.Quantity,
             product.CategoryId));
-});
+})
+.AddEndpointFilter<ValidationFilter<CreateProductRequestDto>>();
 
 
 // PUT /products/{id}
@@ -132,15 +136,21 @@ productsGroup.MapPut("/{id:int}", async (
     var product = await db.Products.FindAsync(id);
 
     if (product is null)
-        return Results.NotFound();
+        return Results.NotFound(new
+        {
+            message = $"Product with id {id} not found."
+        });
 
     product.Price = request.Price;
     product.Quantity = request.Quantity;
     product.Name = request.Name;
 
     await db.SaveChangesAsync();
+
     return Results.NoContent();
-});
+})
+.AddEndpointFilter<ValidationFilter<UpdateProductRequestDto>>();
+
 
 
 // DELETE /products/{id}
