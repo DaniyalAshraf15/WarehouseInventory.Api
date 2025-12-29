@@ -187,3 +187,4 @@ productsGroup.MapDelete("/{id:int}",
 
 
 app.Run();
+public partial class Program { }
