@@ -16,7 +16,7 @@ namespace WarehouseInventory.Api.Tests.Unit
         {
             var dto = new CreateProductRequestDto(
                 Name: "",
-                SKU: "WH-1234",
+                SKU: "WH-1114",
                 Price: 100,
                 Quantity: 5,
                 CategoryId: 1
